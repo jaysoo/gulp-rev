@@ -148,3 +148,27 @@ it('should store the hashes for later', function (cb) {
 		contents: new Buffer('')
 	}));
 });
+
+it('should update source map file names', function(cb) {
+	var sourceContent = 'function horse(message) { console.log("horse says " + message); }';
+	var stream = rev();
+
+	stream.on('data', function(file) {
+		if (/horse-8ab6e237/.test(file.path)) {
+			assert.deepEqual(file.sourceMap.sources, ['horse-8ab6e237.js']);
+			cb();
+		}
+	});
+
+	var file = new gutil.File({
+	path: 'horse.js',
+	contents: new Buffer(sourceContent)
+});
+
+	file.sourceMap ={
+	"sources": ["horse.js"],
+	"sourcesContent": [sourceContent]
+};
+
+	stream.write(file);
+});

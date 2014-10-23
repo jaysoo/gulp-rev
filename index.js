@@ -9,6 +9,10 @@ function md5(str) {
 	return crypto.createHash('md5').update(str).digest('hex');
 }
 
+function revHash(contents) {
+	return md5(contents).slice(0, 8);
+}
+
 function relPath(base, filePath) {
 	if (filePath.indexOf(base) !== 0) {
 		return filePath.replace(/\\/g, '/');
@@ -21,6 +25,12 @@ function relPath(base, filePath) {
 	}
 
 	return newPath;
+}
+
+function revHashPath(filePath, s) {
+	var ext = path.extname(filePath);
+	var origBaseName = path.basename(filePath, ext);
+	return origBaseName + '-' + s + ext;
 }
 
 var plugin = function () {
@@ -39,10 +49,18 @@ var plugin = function () {
 		file.revOrigPath = file.path;
 		file.revOrigBase = file.base;
 
-		var hash = file.revHash = md5(file.contents).slice(0, 8);
-		var ext = path.extname(file.path);
-		var filename = path.basename(file.path, ext) + '-' + hash + ext;
+		var hash = file.revHash = revHash(file.contents);
+		var filename = revHashPath(file.path, hash);
 		file.path = path.join(path.dirname(file.path), filename);
+		
+		if (file.sourceMap) {
+			file.sourceMap.sources = file.sourceMap.sources.map(function(source, idx) {
+				var content = file.sourceMap.sourcesContent[idx];
+				var hash = revHash(content);
+				return revHashPath(source, hash);
+			});
+		}
+
 		cb(null, file);
 	});
 };
